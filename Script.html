@@ -1,0 +1,299 @@
+<script>
+  (function () {
+    'use strict';
+
+    const STORAGE_KEYS = Object.freeze({
+      SESSION: 'drivex.session',
+      THEME: 'drivex.theme'
+    });
+
+    function getSessionToken() {
+      return localStorage.getItem(STORAGE_KEYS.SESSION)
+        || sessionStorage.getItem(STORAGE_KEYS.SESSION)
+        || '';
+    }
+
+    function saveSession(token, rememberMe) {
+      clearSession();
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem(STORAGE_KEYS.SESSION, token);
+    }
+
+    function clearSession() {
+      localStorage.removeItem(STORAGE_KEYS.SESSION);
+      sessionStorage.removeItem(STORAGE_KEYS.SESSION);
+    }
+
+    function callServer(functionName) {
+      const args = Array.prototype.slice.call(arguments, 1);
+
+      return new Promise(function (resolve, reject) {
+        if (!(window.google && google.script && google.script.run)) {
+          reject(new Error('Google Apps ScriptのウェブアプリURLから開いてください。'));
+          return;
+        }
+
+        const runner = google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(function (error) {
+            reject(new Error(error && error.message
+              ? error.message
+              : 'サーバーとの通信中にエラーが発生しました。'));
+          });
+
+        if (typeof runner[functionName] !== 'function') {
+          reject(new Error('サーバー関数が見つかりません: ' + functionName));
+          return;
+        }
+
+        runner[functionName].apply(runner, args);
+      });
+    }
+
+    function callAuthenticated(functionName) {
+      const args = Array.prototype.slice.call(arguments, 1);
+      const token = getSessionToken();
+
+      if (!token) {
+        redirectToLogin();
+        return Promise.reject(new Error('ログインが必要です。'));
+      }
+
+      return callServer.apply(null, [functionName, token].concat(args))
+        .catch(function (error) {
+          if (/ログイン|有効期限|利用できません/.test(error.message)) {
+            clearSession();
+            redirectToLogin();
+          }
+          throw error;
+        });
+    }
+
+    function redirectToLogin() {
+      redirectToPage_('login');
+    }
+
+    function redirectToDashboard() {
+      redirectToPage_('dashboard');
+    }
+
+    function redirectToPage_(page) {
+      callServer('getPublicAppConfig')
+        .then(function (config) {
+          const baseUrl = String((config && config.webAppUrl) || '');
+          const targetUrl = baseUrl
+            ? baseUrl + '?page=' + encodeURIComponent(page)
+            : '?page=' + encodeURIComponent(page);
+
+          window.location.assign(targetUrl);
+        })
+        .catch(function () {
+          window.location.assign('?page=' + encodeURIComponent(page));
+        });
+    }
+
+    function showToast(message, type, duration) {
+      const container = getToastContainer_();
+      const toast = document.createElement('div');
+      const closeButton = document.createElement('button');
+      const text = document.createElement('div');
+
+      toast.className = 'toast toast--' + (type || 'success');
+      text.className = 'toast__body';
+      text.textContent = String(message || '');
+
+      closeButton.className = 'button button--ghost button--icon button--small';
+      closeButton.type = 'button';
+      closeButton.setAttribute('aria-label', '閉じる');
+      closeButton.textContent = '×';
+      closeButton.addEventListener('click', function () {
+        toast.remove();
+      });
+
+      toast.appendChild(text);
+      toast.appendChild(closeButton);
+      container.appendChild(toast);
+
+      window.setTimeout(function () {
+        if (toast.parentNode) {
+          toast.remove();
+        }
+      }, duration || 4000);
+    }
+
+    function getToastContainer_() {
+      let container = document.getElementById('toastContainer');
+
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        container.setAttribute('aria-live', 'polite');
+        document.body.appendChild(container);
+      }
+
+      return container;
+    }
+
+    function setButtonLoading(button, isLoading, loadingText) {
+      if (!button) return;
+
+      if (isLoading) {
+        button.dataset.originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = loadingText || '処理中…';
+      } else {
+        button.disabled = false;
+        button.textContent = button.dataset.originalText || button.textContent;
+        delete button.dataset.originalText;
+      }
+    }
+
+    function setTheme(theme) {
+      const normalizedTheme = theme === 'dark' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = normalizedTheme;
+      localStorage.setItem(STORAGE_KEYS.THEME, normalizedTheme);
+      return normalizedTheme;
+    }
+
+    function toggleTheme() {
+      return setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    }
+
+    function initializeTheme() {
+      const storedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
+      const systemPrefersDark = window.matchMedia
+        && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      setTheme(storedTheme || (systemPrefersDark ? 'dark' : 'light'));
+    }
+
+    function formatDate(value) {
+      if (!value) return '-';
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '-';
+
+      return new Intl.DateTimeFormat('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    }
+
+    function formatFileSize(bytes) {
+      const size = Number(bytes || 0);
+      if (!Number.isFinite(size) || size <= 0) return '-';
+
+      const units = ['B', 'KB', 'MB', 'GB'];
+      const index = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
+      const value = size / Math.pow(1024, index);
+
+      return (index === 0 ? value : value.toFixed(value >= 10 ? 0 : 1)) + ' ' + units[index];
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function getInitials(name) {
+      const text = String(name || '').trim();
+      return text ? text.slice(0, 2).toUpperCase() : 'DX';
+    }
+
+    function getFileIcon(item) {
+      if (item && item.type === 'FOLDER') return '📁';
+
+      const mimeType = String((item && item.mimeType) || '');
+      if (mimeType.indexOf('image/') === 0) return '🖼️';
+      if (mimeType.indexOf('video/') === 0) return '🎬';
+      if (mimeType.indexOf('audio/') === 0) return '🎵';
+      if (mimeType.indexOf('pdf') !== -1) return '📕';
+      if (mimeType.indexOf('spreadsheet') !== -1) return '📊';
+      if (mimeType.indexOf('document') !== -1) return '📄';
+      if (mimeType.indexOf('presentation') !== -1) return '📽️';
+      return '📄';
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise(function (resolve, reject) {
+        if (!file) {
+          reject(new Error('ファイルを選択してください。'));
+          return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function () {
+          const result = String(reader.result || '');
+          const separatorIndex = result.indexOf(',');
+
+          resolve({
+            name: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            base64: separatorIndex >= 0 ? result.slice(separatorIndex + 1) : result
+          });
+        };
+
+        reader.onerror = function () {
+          reject(new Error('ファイルを読み込めませんでした。'));
+        };
+
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function downloadBase64File(fileData) {
+      const binary = atob(fileData.base64);
+      const bytes = new Uint8Array(binary.length);
+
+      for (let index = 0; index < binary.length; index++) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+
+      const blob = new Blob([bytes], {
+        type: fileData.mimeType || 'application/octet-stream'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileData.name || 'download';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    window.DriveX = Object.freeze({
+      callServer: callServer,
+      callAuthenticated: callAuthenticated,
+      getSessionToken: getSessionToken,
+      saveSession: saveSession,
+      clearSession: clearSession,
+      redirectToLogin: redirectToLogin,
+      redirectToDashboard: redirectToDashboard,
+      showToast: showToast,
+      setButtonLoading: setButtonLoading,
+      initializeTheme: initializeTheme,
+      setTheme: setTheme,
+      toggleTheme: toggleTheme,
+      formatDate: formatDate,
+      formatFileSize: formatFileSize,
+      escapeHtml: escapeHtml,
+      getInitials: getInitials,
+      getFileIcon: getFileIcon,
+      readFileAsBase64: readFileAsBase64,
+      downloadBase64File: downloadBase64File
+    });
+
+    document.addEventListener('DOMContentLoaded', initializeTheme);
+  }());
+</script>

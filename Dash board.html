@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= appName ?></title>
+    <?!= include('Style'); ?>
+  </head>
+
+  <body>
+    <div class="app-shell">
+      <aside id="sidebar" class="sidebar">
+        <div class="app-logo">
+          <span class="app-logo__mark">D</span>
+          <span><?= appName ?></span>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button class="sidebar-nav__item is-active" data-view="drive" type="button">📁 マイドライブ</button>
+          <button class="sidebar-nav__item" data-view="favorites" type="button">☆ お気に入り</button>
+          <button class="sidebar-nav__item" data-view="trash" type="button">♲ ごみ箱</button>
+          <button id="adminNav" class="sidebar-nav__item" data-view="admin" type="button" hidden>⚙ 管理</button>
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+
+        <div style="padding:12px 10px 0;border-top:1px solid var(--border-light);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="userAvatar" class="app-logo__mark" style="width:34px;height:34px;border-radius:50%;font-size:12px;"></span>
+            <div style="min-width:0;flex:1;">
+              <div id="userName" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700;"></div>
+              <div id="userRole" style="color:var(--muted);font-size:11px;"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:5px;margin-top:10px;">
+            <button id="profileButton" class="button button--ghost button--small" type="button">プロフィール</button>
+            <button id="logoutButton" class="button button--ghost button--small" type="button">ログアウト</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+            <button id="menuButton" class="button button--ghost button--icon" type="button">☰</button>
+            <h1 id="pageTitle" class="topbar__title">マイドライブ</h1>
+          </div>
+
+          <div class="topbar__actions">
+            <div class="search-box">
+              <span style="position:absolute;top:50%;left:13px;transform:translateY(-50%);color:var(--muted);">⌕</span>
+              <input id="searchInput" class="input" type="search" placeholder="DriveX内を検索">
+            </div>
+
+            <button id="themeButton" class="button button--ghost button--icon" type="button">◐</button>
+          </div>
+        </header>
+
+        <div id="message" class="message" role="alert" aria-live="polite"></div>
+
+        <section class="content-card">
+          <div class="content-card__header">
+            <div id="location" style="font-size:13px;font-weight:700;">DriveX Files</div>
+
+            <div id="driveActions" style="display:flex;gap:8px;">
+              <button id="createFolderButton" class="button button--secondary button--small" type="button">＋ フォルダ</button>
+              <button id="uploadButton" class="button button--primary button--small" type="button">↑ アップロード</button>
+            </div>
+          </div>
+
+          <div class="content-card__body">
+            <div id="backRow" hidden style="margin-bottom:14px;">
+              <button id="backButton" class="button button--ghost button--small" type="button">← 戻る</button>
+            </div>
+
+            <div id="contentArea" class="file-grid" aria-live="polite"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="folderModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal">
+        <div class="modal__header">
+          <h2 style="margin:0;font-size:17px;">新しいフォルダ</h2>
+        </div>
+
+        <div class="modal__body">
+          <div class="form-field" style="margin-bottom:0;">
+            <label class="form-label" for="folderName">フォルダ名</label>
+            <input id="folderName" class="input" type="text" maxlength="200" placeholder="フォルダ名を入力">
+          </div>
+        </div>
+
+        <div class="modal__footer">
+          <button class="button button--secondary" data-close-modal="folderModal" type="button">キャンセル</button>
+          <button id="createFolderConfirm" class="button button--primary" type="button">作成</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="uploadModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal">
+        <div class="modal__header">
+          <h2 style="margin:0;font-size:17px;">ファイルをアップロード</h2>
+        </div>
+
+        <div class="modal__body">
+          <div class="form-field" style="margin-bottom:0;">
+            <label class="form-label" for="uploadFile">ファイル（20MBまで）</label>
+            <input id="uploadFile" class="input" type="file">
+          </div>
+        </div>
+
+        <div class="modal__footer">
+          <button class="button button--secondary" data-close-modal="uploadModal" type="button">キャンセル</button>
+          <button id="uploadConfirm" class="button button--primary" type="button">アップロード</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="profileModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal">
+        <div class="modal__header">
+          <h2 style="margin:0;font-size:17px;">プロフィール</h2>
+        </div>
+
+        <div class="modal__body">
+          <div class="form-field">
+            <label class="form-label" for="profileName">表示名</label>
+            <input id="profileName" class="input" type="text">
+          </div>
+
+          <div class="form-field" style="margin-bottom:0;">
+            <label class="form-label" for="profileEmail">メールアドレス</label>
+            <input id="profileEmail" class="input" type="email">
+          </div>
+        </div>
+
+        <div class="modal__footer">
+          <button class="button button--secondary" data-close-modal="profileModal" type="button">キャンセル</button>
+          <button id="profileSave" class="button button--primary" type="button">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <?!= include('Script'); ?>
+
+    <script>
+      (function () {
+        'use strict';
+
+        const state = {
+          user: null,
+          view: 'drive',
+          currentFolder: '',
+          parentFolders: [],
+          searchTimer: null
+        };
+
+        const contentArea = document.getElementById('contentArea');
+        const message = document.getElementById('message');
+
+        function showMessage(text, type) {
+          message.textContent = text;
+          message.className = 'message message--' + type + ' is-visible';
+        }
+
+        function clearMessage() {
+          message.textContent = '';
+          message.className = 'message';
+        }
+
+        function openModal(id) {
+          const modal = document.getElementById(id);
+          modal.classList.add('is-open');
+          modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeModal(id) {
+          const modal = document.getElementById(id);
+          modal.classList.remove('is-open');
+          modal.setAttribute('aria-hidden', 'true');
+        }
+
+        function setLoading() {
+          contentArea.innerHTML =
+            '<div class="empty-state"><span class="spinner"></span><p>読み込み中…</p></div>';
+        }
+
+        function setEmpty(title, text) {
+          contentArea.innerHTML =
+            '<div class="empty-state"><div>' +
+              '<div style="font-size:34px;margin-bottom:10px;">📂</div>' +
+              '<h3 style="margin:0 0 5px;">' + DriveX.escapeHtml(title) + '</h3>' +
+              '<p style="margin:0;">' + DriveX.escapeHtml(text) + '</p>' +
+            '</div></div>';
+        }
+
+        function createItemCard(item) {
+          const isFolder = item.type === 'FOLDER';
+
+          return (
+            '<button class="file-card" type="button" data-id="' + item.id +
+            '" data-type="' + item.type + '">' +
+              '<div class="file-card__icon">' + DriveX.getFileIcon(item) + '</div>' +
+              '<div class="file-card__name">' + DriveX.escapeHtml(item.name) + '</div>' +
+              '<div class="file-card__meta">' +
+                (isFolder ? 'フォルダ' : DriveX.formatFileSize(item.size)) +
+              '</div>' +
+            '</button>'
+          );
+        }
+
+        function renderItems(items) {
+          if (!items.length) {
+            setEmpty(
+              '項目はありません',
+              'フォルダを作成するか、ファイルをアップロードしてください。'
+            );
+            return;
+          }
+
+          contentArea.innerHTML = items.map(createItemCard).join('');
+        }
+
+        function updateUser(user) {
+          state.user = user;
+
+          document.getElementById('userName').textContent =
+            user.displayName || user.userId;
+
+          document.getElementById('userRole').textContent =
+            user.role === 'ADMIN' ? '管理者' : 'ユーザー';
+
+          document.getElementById('userAvatar').textContent =
+            DriveX.getInitials(user.displayName || user.userId);
+
+          if (user.role === 'ADMIN') {
+            document.getElementById('adminNav').hidden = false;
+          }
+        }
+
+        function setView(view) {
+          state.view = view;
+          state.currentFolder = '';
+          state.parentFolders = [];
+
+          document.querySelectorAll('[data-view]').forEach(function (button) {
+            button.classList.toggle('is-active', button.dataset.view === view);
+          });
+
+          document.getElementById('backRow').hidden = true;
+          document.getElementById('driveActions').hidden = view !== 'drive';
+
+          const titles = {
+            drive: 'マイドライブ',
+            favorites: 'お気に入り',
+            trash: 'ごみ箱',
+            admin: '管理'
+          };
+
+          document.getElementById('pageTitle').textContent = titles[view];
+          loadCurrentView();
+        }
+
+        function loadCurrentView() {
+          clearMessage();
+          setLoading();
+
+          if (state.view === 'drive') {
+            DriveX.callAuthenticated('listDriveItems', state.currentFolder)
+              .then(function (result) {
+                document.getElementById('location').textContent =
+                  result.currentFolder.name;
+
+                document.getElementById('backRow').hidden =
+                  state.parentFolders.length === 0;
+
+                renderItems(result.folders.concat(result.files));
+              })
+              .catch(handleError);
+
+            return;
+          }
+
+          if (state.view === 'trash') {
+            document.getElementById('location').textContent = 'ごみ箱';
+
+            DriveX.callAuthenticated('getMyTrashItems')
+              .then(renderItems)
+              .catch(handleError);
+
+            return;
+          }
+
+          if (state.view === 'favorites') {
+            document.getElementById('location').textContent = 'お気に入り';
+
+            DriveX.callAuthenticated('getMyFavoriteIds')
+              .then(function (ids) {
+                if (!ids.length) {
+                  setEmpty(
+                    'お気に入りはありません',
+                    'ファイルをお気に入りに追加するとここに表示されます。'
+                  );
+                  return null;
+                }
+
+                return Promise.all(
+                  ids.map(function (id) {
+                    return DriveX.callAuthenticated('getDriveFilePreview', id)
+                      .then(function (file) {
+                        file.type = 'FILE';
+                        return file;
+                      })
+                      .catch(function () {
+                        return null;
+                      });
+                  })
+                );
+              })
+              .then(function (items) {
+                if (items) {
+                  renderItems(items.filter(Boolean));
+                }
+              })
+              .catch(handleError);
+
+            return;
+          }
+
+          if (state.view === 'admin') {
+            document.getElementById('location').textContent = 'ユーザー管理';
+
+            DriveX.callAuthenticated('getAdminUserList')
+              .then(renderAdminUsers)
+              .catch(handleError);
+          }
+        }
+
+        function renderAdminUsers(users) {
+          if (!users.length) {
+            setEmpty('ユーザーがいません', 'ユーザーを追加してください。');
+            return;
+          }
+
+          contentArea.innerHTML = users.map(function (user) {
+            return (
+              '<div class="file-card" style="cursor:default;min-height:120px;">' +
+                '<div class="file-card__name">' +
+                  DriveX.escapeHtml(user.displayName) +
+                '</div>' +
+                '<div class="file-card__meta">' +
+                  DriveX.escapeHtml(user.userId) +
+                '</div>' +
+                '<div class="file-card__meta">' +
+                  (user.role === 'ADMIN' ? '管理者' : 'ユーザー') +
+                  ' ・ ' + (user.isActive ? '有効' : '無効') +
+                '</div>' +
+              '</div>'
+            );
+          }).join('');
+        }
+
+        function handleError(error) {
+          const errorMessage = error.message || '時間をおいて再度お試しください。';
+
+          setEmpty('読み込みに失敗しました', errorMessage);
+          showMessage(errorMessage, 'error');
+        }
+
+        function enterItem(itemElement) {
+          if (itemElement.dataset.type === 'FOLDER') {
+            state.parentFolders.push(state.currentFolder);
+            state.currentFolder = itemElement.dataset.id;
+            loadCurrentView();
+            return;
+          }
+
+          DriveX.callAuthenticated('getDriveFilePreview', itemElement.dataset.id)
+            .then(function (file) {
+              window.open(file.openUrl, '_blank', 'noopener');
+            })
+            .catch(handleError);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+          const token = DriveX.getSessionToken();
+
+          if (!token) {
+            DriveX.redirectToLogin();
+            return;
+          }
+
+          DriveX.callAuthenticated('getAuthenticationStatus')
+            .then(function (status) {
+              if (!status.authenticated) {
+                DriveX.clearSession();
+                DriveX.redirectToLogin();
+                return;
+              }
+
+              updateUser(status.user);
+              setView('drive');
+            })
+            .catch(handleError);
+        });
+
+        document.querySelectorAll('[data-view]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            setView(button.dataset.view);
+          });
+        });
+
+        contentArea.addEventListener('click', function (event) {
+          const item = event.target.closest('[data-id]');
+
+          if (item) {
+            enterItem(item);
+          }
+        });
+
+        document.getElementById('backButton').addEventListener('click', function () {
+          state.currentFolder = state.parentFolders.pop();
+          loadCurrentView();
+        });
+
+        document.getElementById('createFolderButton').addEventListener('click', function () {
+          document.getElementById('folderName').value = '';
+          openModal('folderModal');
+          document.getElementById('folderName').focus();
+        });
+
+        document.getElementById('uploadButton').addEventListener('click', function () {
+          document.getElementById('uploadFile').value = '';
+          openModal('uploadModal');
+        });
+
+        document.querySelectorAll('[data-close-modal]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            closeModal(button.dataset.closeModal);
+          });
+        });
+
+        document.getElementById('createFolderConfirm').addEventListener('click', function () {
+          const button = this;
+          const name = document.getElementById('folderName').value.trim();
+
+          if (!name) {
+            showMessage('フォルダ名を入力してください。', 'error');
+            return;
+          }
+
+          DriveX.setButtonLoading(button, true, '作成中…');
+
+          DriveX.callAuthenticated(
+            'createDriveFolder',
+            name,
+            state.currentFolder
+          )
+            .then(function () {
+              closeModal('folderModal');
+              DriveX.showToast('フォルダを作成しました。');
+              loadCurrentView();
+            })
+            .catch(function (error) {
+              showMessage(error.message, 'error');
+            })
+            .finally(function () {
+              DriveX.setButtonLoading(button, false);
+            });
+        });
+
+        document.getElementById('uploadConfirm').addEventListener('click', function () {
+          const button = this;
+          const file = document.getElementById('uploadFile').files[0];
+
+          DriveX.setButtonLoading(button, true, '準備中…');
+
+          DriveX.readFileAsBase64(file)
+            .then(function (data) {
+              data.parentFolderId = state.currentFolder;
+              DriveX.setButtonLoading(button, true, 'アップロード中…');
+
+              return DriveX.callAuthenticated('uploadDriveFile', data);
+            })
+            .then(function () {
+              closeModal('uploadModal');
+              DriveX.showToast('ファイルをアップロードしました。');
+              loadCurrentView();
+            })
+            .catch(function (error) {
+              showMessage(error.message, 'error');
+            })
+            .finally(function () {
+              DriveX.setButtonLoading(button, false);
+            });
+        });
+
+        document.getElementById('searchInput').addEventListener('input', function () {
+          const keyword = this.value.trim();
+
+          window.clearTimeout(state.searchTimer);
+
+          state.searchTimer = window.setTimeout(function () {
+            if (!keyword) {
+              setView('drive');
+              return;
+            }
+
+            state.view = 'search';
+
+            document.getElementById('pageTitle').textContent = '検索結果';
+            document.getElementById('location').textContent =
+              '「' + keyword + '」の検索結果';
+
+            document.getElementById('driveActions').hidden = true;
+
+            setLoading();
+
+            DriveX.callAuthenticated('searchDriveItems', keyword)
+              .then(renderItems)
+              .catch(handleError);
+          }, 350);
+        });
+
+        document.getElementById('themeButton').addEventListener('click', function () {
+          DriveX.toggleTheme();
+        });
+
+        document.getElementById('menuButton').addEventListener('click', function () {
+          document.getElementById('sidebar').classList.toggle('is-open');
+        });
+
+        document.getElementById('profileButton').addEventListener('click', function () {
+          document.getElementById('profileName').value =
+            state.user.displayName || '';
+
+          document.getElementById('profileEmail').value =
+            state.user.email || '';
+
+          openModal('profileModal');
+        });
+
+        document.getElementById('profileSave').addEventListener('click', function () {
+          const button = this;
+
+          DriveX.setButtonLoading(button, true, '保存中…');
+
+          DriveX.callAuthenticated('updateMyProfile', {
+            displayName: document.getElementById('profileName').value,
+            email: document.getElementById('profileEmail').value
+          })
+            .then(function (result) {
+              updateUser(result.user);
+              closeModal('profileModal');
+              DriveX.showToast('プロフィールを更新しました。');
+            })
+            .catch(function (error) {
+              showMessage(error.message, 'error');
+            })
+            .finally(function () {
+              DriveX.setButtonLoading(button, false);
+            });
+        });
+
+        document.getElementById('logoutButton').addEventListener('click', function () {
+          DriveX.callAuthenticated('logoutUser')
+            .finally(function () {
+              DriveX.clearSession();
+              DriveX.redirectToLogin();
+            });
+        });
+      }());
+    </script>
+  </body>
+</html>
