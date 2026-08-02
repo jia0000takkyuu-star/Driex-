@@ -1,338 +1,567 @@
 <!DOCTYPE html>
-<html lang="ja">
-  <head>
-    <base target="_top">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= appName ?> | ログイン</title>
-    <?!= include('Style'); ?>
-  </head>
+<html>
 
-  <body>
-    <main class="login-page">
-      <section class="login-aside" aria-label="DriveXの紹介">
-        <div class="app-logo">
-          <span class="app-logo__mark" aria-hidden="true">D</span>
-          <span><?= appName ?></span>
-        </div>
+<head>
 
-        <div class="login-aside__copy">
-          <h1>ファイル管理を、<br>もっとシンプルに。</h1>
-          <p>
-            DriveXはチームのファイルを安全に整理、共有、検索できる
-            ファイル管理システムです。
-          </p>
-        </div>
+<base target="_top">
 
-        <p class="login-aside__footer">© 2026 DriveX. All rights reserved.</p>
-      </section>
+<?!= include("CSS"); ?>
 
-      <section class="login-main" aria-labelledby="loginTitle">
-        <div class="login-card">
-          <h1 id="loginTitle" class="login-card__title">おかえりなさい</h1>
 
-          <p class="login-card__lead">
-            ユーザーIDとパスワードを入力してログインしてください。
-          </p>
+<style>
 
-          <div
-            id="loginMessage"
-            class="message"
-            role="alert"
-            aria-live="polite"
-          ></div>
 
-          <form id="loginForm" novalidate>
-            <div class="form-field">
-              <label class="form-label" for="userId">ユーザーID</label>
-              <input
-                id="userId"
-                class="input"
-                type="text"
-                autocomplete="username"
-                autocapitalize="none"
-                spellcheck="false"
-                placeholder="ユーザーIDを入力"
-                required
-              >
-            </div>
+body{
 
-            <div class="form-field">
-              <label class="form-label" for="password">パスワード</label>
+margin:0;
 
-              <div class="input-wrap">
-                <input
-                  id="password"
-                  class="input"
-                  type="password"
-                  autocomplete="current-password"
-                  placeholder="パスワードを入力"
-                  required
-                >
+background:#f3f4f6;
 
-                <button
-                  id="passwordToggle"
-                  class="button button--ghost button--icon button--small input-action"
-                  type="button"
-                  aria-label="パスワードを表示"
-                >表示</button>
-              </div>
-            </div>
+font-family:
+"Noto Sans JP",
+Arial,
+sans-serif;
 
-            <div class="login-options">
-              <label class="checkbox">
-                <input id="rememberMe" type="checkbox">
-                <span>ログイン状態を保持</span>
-              </label>
+}
 
-              <button id="forgotPassword" class="text-link" type="button">
-                パスワードをお忘れですか？
-              </button>
-            </div>
 
-            <button
-              id="loginButton"
-              class="button button--primary button--block"
-              type="submit"
-            >
-              ログイン
-            </button>
-          </form>
 
-          <p class="login-support">
-            パスワード再設定には、システム管理者による承認が必要です。
-          </p>
-        </div>
-      </section>
-    </main>
+.login-wrapper{
 
-    <div
-      id="resetModal"
-      class="modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="resetTitle"
-      aria-hidden="true"
-    >
-      <div class="modal">
-        <div class="modal__header">
-          <h2 id="resetTitle" style="margin: 0; font-size: 17px;">
-            パスワード再設定を申請
-          </h2>
+height:100vh;
 
-          <button
-            id="closeResetModal"
-            class="button button--ghost button--icon"
-            type="button"
-            aria-label="閉じる"
-          >×</button>
-        </div>
+display:flex;
 
-        <div class="modal__body">
-          <p style="margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.7;">
-            ユーザーIDを入力してください。管理者の承認後にパスワードを再設定できます。
-          </p>
+align-items:center;
 
-          <div class="form-field" style="margin-bottom: 0;">
-            <label class="form-label" for="resetUserId">ユーザーID</label>
+justify-content:center;
 
-            <input
-              id="resetUserId"
-              class="input"
-              type="text"
-              autocomplete="username"
-              autocapitalize="none"
-              spellcheck="false"
-              placeholder="ユーザーIDを入力"
-            >
-          </div>
-        </div>
+}
 
-        <div class="modal__footer">
-          <button
-            id="cancelReset"
-            class="button button--secondary"
-            type="button"
-          >キャンセル</button>
 
-          <button
-            id="sendReset"
-            class="button button--primary"
-            type="button"
-          >申請する</button>
-        </div>
-      </div>
-    </div>
 
-    <?!= include('Script'); ?>
+.login-card{
 
-    <script>
-      (function () {
-        'use strict';
+background:white;
 
-        const form = document.getElementById('loginForm');
-        const userIdInput = document.getElementById('userId');
-        const passwordInput = document.getElementById('password');
-        const rememberMeInput = document.getElementById('rememberMe');
-        const loginButton = document.getElementById('loginButton');
-        const message = document.getElementById('loginMessage');
-        const resetModal = document.getElementById('resetModal');
-        const resetUserIdInput = document.getElementById('resetUserId');
-        const sendResetButton = document.getElementById('sendReset');
+width:360px;
 
-        function showMessage(text, type) {
-          message.textContent = text;
-          message.className = 'message message--' + type + ' is-visible';
-        }
+padding:40px;
 
-        function clearMessage() {
-          message.textContent = '';
-          message.className = 'message';
-        }
+border-radius:16px;
 
-        function openResetModal() {
-          clearMessage();
+box-shadow:
+0 10px 30px rgba(0,0,0,0.15);
 
-          resetUserIdInput.value = userIdInput.value.trim();
+text-align:center;
 
-          resetModal.classList.add('is-open');
-          resetModal.setAttribute('aria-hidden', 'false');
+}
 
-          resetUserIdInput.focus();
-        }
 
-        function closeResetModal() {
-          resetModal.classList.remove('is-open');
-          resetModal.setAttribute('aria-hidden', 'true');
 
-          document.getElementById('forgotPassword').focus();
-        }
+.logo{
 
-        document.getElementById('passwordToggle').addEventListener('click', function () {
-          const isVisible = passwordInput.type === 'text';
+font-size:36px;
 
-          passwordInput.type = isVisible ? 'password' : 'text';
-          this.textContent = isVisible ? '表示' : '非表示';
-          this.setAttribute(
-            'aria-label',
-            isVisible ? 'パスワードを表示' : 'パスワードを隠す'
-          );
-        });
+font-weight:bold;
 
-        document.getElementById('forgotPassword')
-          .addEventListener('click', openResetModal);
+color:#2563eb;
 
-        document.getElementById('closeResetModal')
-          .addEventListener('click', closeResetModal);
+}
 
-        document.getElementById('cancelReset')
-          .addEventListener('click', closeResetModal);
 
-        resetModal.addEventListener('click', function (event) {
-          if (event.target === resetModal) {
-            closeResetModal();
-          }
-        });
 
-        document.addEventListener('keydown', function (event) {
-          if (
-            event.key === 'Escape' &&
-            resetModal.classList.contains('is-open')
-          ) {
-            closeResetModal();
-          }
-        });
+.subtitle{
 
-        form.addEventListener('submit', function (event) {
-          event.preventDefault();
+margin-bottom:30px;
 
-          clearMessage();
+color:#666;
 
-          const userId = userIdInput.value.trim();
-          const password = passwordInput.value;
+}
 
-          if (!userId || !password) {
-            showMessage(
-              'ユーザーIDとパスワードを入力してください。',
-              'error'
-            );
-            return;
-          }
 
-          DriveX.setButtonLoading(loginButton, true, 'ログイン中…');
 
-          DriveX.callServer(
-            'loginUser',
-            userId,
-            password,
-            rememberMeInput.checked
-          )
-            .then(function (result) {
-              if (!result || !result.success) {
-                showMessage(
-                  (result && result.message) ||
-                    'ユーザーIDまたはパスワードが正しくありません。',
-                  'error'
-                );
-                return;
-              }
+.form-group{
 
-              DriveX.saveSession(
-                result.sessionToken,
-                rememberMeInput.checked
-              );
+text-align:left;
 
-              // Apps Scriptでは iframe を使わずトップ画面へ移動
-              const url =
-                "<?= webAppUrl ?>" +
-                "?page=dashboard&token=" +
-                encodeURIComponent(result.sessionToken);
+margin-bottom:18px;
 
-              window.top.location.href = url;
-            })
-            .catch(function (error) {
-              showMessage(
-                error.message || 'ログイン中にエラーが発生しました。',
-                'error'
-              );
-            })
-            .finally(function () {
-              DriveX.setButtonLoading(loginButton, false);
-            });
-        });
+}
 
-        sendResetButton.addEventListener('click', function () {
-          const userId = resetUserIdInput.value.trim();
 
-          if (!userId) {
-            showMessage('ユーザーIDを入力してください。', 'error');
-            resetUserIdInput.focus();
-            return;
-          }
 
-          DriveX.setButtonLoading(sendResetButton, true, '申請中…');
+.form-group label{
 
-          DriveX.callServer('requestPasswordReset', userId)
-            .then(function (result) {
-              closeResetModal();
+display:block;
 
-              showMessage(
-                (result && result.message) ||
-                  '再設定申請を受け付けました。',
-                'success'
-              );
-            })
-            .catch(function (error) {
-              showMessage(
-                error.message || '申請中にエラーが発生しました。',
-                'error'
-              );
-            })
-            .finally(function () {
-              DriveX.setButtonLoading(sendResetButton, false);
-            });
-        });
-      }());
-    </script>
-  </body>
+margin-bottom:6px;
+
+}
+
+
+
+.form-group input{
+
+
+width:100%;
+
+box-sizing:border-box;
+
+padding:12px;
+
+border:1px solid #ddd;
+
+border-radius:8px;
+
+font-size:15px;
+
+
+}
+
+
+
+#loginBtn{
+
+
+width:100%;
+
+padding:13px;
+
+background:#2563eb;
+
+color:white;
+
+border:none;
+
+border-radius:8px;
+
+font-size:16px;
+
+cursor:pointer;
+
+
+}
+
+
+
+#loginBtn:disabled{
+
+background:#999;
+
+}
+
+
+
+.message{
+
+margin-top:15px;
+
+font-size:14px;
+
+}
+
+
+
+.version{
+
+margin-top:20px;
+
+color:#999;
+
+font-size:12px;
+
+}
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+
+<div class="login-wrapper">
+
+
+<div class="login-card">
+
+
+<div class="logo">
+
+DriveX
+
+</div>
+
+
+
+<div class="subtitle">
+
+File Management System
+
+</div>
+
+
+
+<div class="form-group">
+
+
+<label>
+
+ユーザーID
+
+</label>
+
+
+<input
+
+id="userId"
+
+type="text"
+
+placeholder="ユーザーID">
+
+
+</div>
+
+
+
+<div class="form-group">
+
+
+<label>
+
+パスワード
+
+</label>
+
+
+<input
+
+id="password"
+
+type="password"
+
+placeholder="パスワード">
+
+
+</div>
+
+
+
+<button
+
+id="loginBtn"
+
+onclick="login()">
+
+ログイン
+
+</button>
+
+
+
+<div
+
+id="message"
+
+class="message">
+
+</div>
+
+
+
+<div class="version">
+
+Version 1.0
+
+</div>
+
+
+
+</div>
+
+
+</div>
+<script>
+
+
+function login(){
+
+
+
+const id =
+
+document
+.getElementById("userId")
+.value;
+
+
+
+const pass =
+
+document
+.getElementById("password")
+.value;
+
+
+
+const btn =
+
+document
+.getElementById("loginBtn");
+
+
+
+const msg =
+
+document
+.getElementById("message");
+
+
+
+
+
+if(
+!id ||
+!pass
+){
+
+
+msg.style.color =
+"red";
+
+
+msg.innerText =
+"IDとパスワードを入力してください";
+
+
+return;
+
+
+}
+
+
+
+
+
+btn.disabled =
+true;
+
+
+btn.innerText =
+"ログイン中...";
+
+
+
+
+
+google.script.run
+
+
+
+.withSuccessHandler(
+function(result){
+
+
+
+if(
+result &&
+result.success
+){
+
+
+
+msg.style.color =
+"green";
+
+
+msg.innerText =
+"ログイン成功";
+
+
+
+
+
+/*
+ログイン情報保存
+*/
+
+sessionStorage.setItem(
+
+"user",
+
+JSON.stringify(result)
+
+);
+
+
+
+
+
+
+
+/*
+Dashboardへ移動
+*/
+
+
+setTimeout(
+function(){
+
+
+
+google.script.run
+
+
+
+.withSuccessHandler(
+function(url){
+
+
+
+window.top.location.href =
+
+url + "?page=Dashboard";
+
+
+
+}
+
+)
+
+
+
+.withFailureHandler(
+function(error){
+
+
+
+console.error(error);
+
+
+
+msg.style.color =
+"red";
+
+
+msg.innerText =
+"ページ移動エラー";
+
+
+
+btn.disabled =
+false;
+
+
+btn.innerText =
+"ログイン";
+
+
+
+}
+
+)
+
+
+
+.getWebAppUrl();
+
+
+
+
+},
+500
+);
+
+
+
+
+
+}else{
+
+
+
+msg.style.color =
+"red";
+
+
+msg.innerText =
+
+result.message;
+
+
+
+btn.disabled =
+false;
+
+
+btn.innerText =
+"ログイン";
+
+
+
+}
+
+
+
+}
+
+)
+
+
+
+
+.withFailureHandler(
+function(error){
+
+
+
+console.error(error);
+
+
+
+msg.style.color =
+"red";
+
+
+msg.innerText =
+
+"通信エラー";
+
+
+
+btn.disabled =
+false;
+
+
+btn.innerText =
+"ログイン";
+
+
+
+}
+
+)
+
+
+
+.login(
+id,
+pass
+);
+
+
+
+}
+
+
+</script>
+
+
+</body>
+
 </html>
